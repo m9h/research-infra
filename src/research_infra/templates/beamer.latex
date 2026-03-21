@@ -1,0 +1,69 @@
+% Pandoc Beamer template with Metropolis theme.
+% Requires XeLaTeX.
+\documentclass[aspectratio=169,11pt]{beamer}
+
+% Theme.
+$if(theme)$
+\usetheme{$theme$}
+$else$
+\usetheme{metropolis}
+$endif$
+$if(colortheme)$
+\usecolortheme{$colortheme$}
+$endif$
+
+% Font setup (XeLaTeX).
+\usepackage{fontspec}
+\defaultfontfeatures{Ligatures=TeX}
+
+% Graphics.
+\usepackage{graphicx}
+\usepackage{booktabs}
+
+% Math.
+\usepackage{amsmath,amssymb}
+
+% Code.
+\usepackage{fancyvrb}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\},fontsize=\footnotesize}
+
+% Pandoc tightlist.
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+
+% Footer.
+$if(title)$
+\setbeamertemplate{frame footer}{$if(short_title)$$short_title$$else$$title$$endif$}
+$endif$
+
+% Title.
+$if(title)$
+\title{$title$}
+$endif$
+$if(author)$
+\author{$for(author)$$author$$sep$ \and $endfor$}
+$endif$
+$if(institute)$
+\institute{$institute$}
+$endif$
+$if(date)$
+\date{$date$}
+$endif$
+
+\begin{document}
+
+\maketitle
+
+$if(toc)$
+\begin{frame}{Outline}
+  \tableofcontents
+\end{frame}
+$endif$
+
+$body$
+
+\begin{frame}[standout]
+  Questions?
+\end{frame}
+
+\end{document}

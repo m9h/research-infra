@@ -1,0 +1,44 @@
+[project]
+name = "research-infra"
+version = "0.1.0"
+description = "Manuscript assembly, Beamer slides, and project validation for a multi-repo research lab"
+readme = "README.md"
+authors = [
+    {name = "Morgan G Hough", email = "morgan.g.hough@gmail.com"},
+]
+license = {text = "Apache-2.0"}
+requires-python = ">=3.11"
+dependencies = [
+    "click>=8.1",
+    "pyyaml>=6.0",
+    "pydantic>=2.0",
+    "jinja2>=3.1",
+    "python-frontmatter>=1.1",
+]
+
+[dependency-groups]
+dev = ["pytest", "ruff"]
+
+[project.scripts]
+rinf = "research_infra.cli:main"
+research-infra-no-mock = "research_infra.validate:no_mock_hook"
+research-infra-validate-frontmatter = "research_infra.validate:frontmatter_hook"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/research_infra"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I001", "UP"]
+fixable = ["I001", "F401", "UP"]
