@@ -215,22 +215,22 @@ def autoresearch() -> None:
 
 
 @autoresearch.command("schedule")
-@click.option("--projects-dir", "-d", default=None, help="Parent directory containing projects (default: ~/dev)")
+@click.option("--projects-dir", "-d", default=None, help="Parent directory containing projects (default: ~/dev + ~/Workspace)")
 def ar_schedule(projects_dir: str | None) -> None:
     """Show the autoresearch schedule and project roster."""
-    from .autoresearch import show_schedule, DEFAULT_PROJECTS_DIR
+    from .autoresearch import show_schedule
 
-    d = Path(projects_dir).resolve() if projects_dir else DEFAULT_PROJECTS_DIR
+    d = Path(projects_dir).resolve() if projects_dir else None
     show_schedule(d)
 
 
 @autoresearch.command("next")
-@click.option("--projects-dir", "-d", default=None, help="Parent directory containing projects (default: ~/dev)")
+@click.option("--projects-dir", "-d", default=None, help="Parent directory containing projects (default: ~/dev + ~/Workspace)")
 def ar_next(projects_dir: str | None) -> None:
     """Print the next project in the round-robin and advance the pointer."""
-    from .autoresearch import next_project, DEFAULT_PROJECTS_DIR
+    from .autoresearch import next_project
 
-    d = Path(projects_dir).resolve() if projects_dir else DEFAULT_PROJECTS_DIR
+    d = Path(projects_dir).resolve() if projects_dir else None
     project = next_project(d)
     if project:
         click.echo(str(project))
@@ -240,16 +240,19 @@ def ar_next(projects_dir: str | None) -> None:
 
 
 @autoresearch.command("scaffold-all")
-@click.option("--projects-dir", "-d", default=None, help="Parent directory containing projects (default: ~/dev)")
+@click.option("--projects-dir", "-d", default=None, help="Parent directory containing projects (default: ~/dev + ~/Workspace)")
 def ar_scaffold_all(projects_dir: str | None) -> None:
     """Scaffold autoresearch/ in all projects that have pyproject.toml."""
-    from .autoresearch import scaffold_autoresearch as _scaffold, DEFAULT_PROJECTS_DIR
+    from .autoresearch import scaffold_autoresearch as _scaffold, DEFAULT_PROJECTS_DIRS
 
-    d = Path(projects_dir).resolve() if projects_dir else DEFAULT_PROJECTS_DIR
+    dirs = [Path(projects_dir).resolve()] if projects_dir else DEFAULT_PROJECTS_DIRS
     count = 0
-    for p in sorted(d.iterdir()):
-        if p.is_dir() and (p / "pyproject.toml").exists():
-            click.echo(f"\n--- {p.name} ---")
-            _scaffold(p)
-            count += 1
+    for scan_dir in dirs:
+        if not scan_dir.is_dir():
+            continue
+        for p in sorted(scan_dir.iterdir()):
+            if p.is_dir() and (p / "pyproject.toml").exists():
+                click.echo(f"\n--- {p.name} ---")
+                _scaffold(p)
+                count += 1
     click.echo(f"\nScaffolded autoresearch in {count} projects.")

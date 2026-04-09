@@ -83,6 +83,36 @@ RESEARCH_TEMPLATES: dict[str, dict] = {
             "Equivalence condition: observation model A = identity vs partial observability",
         ],
     },
+    "devograph": {
+        "goal": "Identify developmental trajectory patterns where hypergraph-based models outperform pairwise GNNs — particularly in gene regulatory network inference, cell fate prediction, and cross-species transfer from C. elegans.",
+        "metric": "dev_advantage = (fate_accuracy_hgx - fate_accuracy_gnn) + 0.5 * cross_species_transfer_r2",
+        "parameters": [
+            "Convolution: Lorentz, SE3, product manifold, hyperbolic from devograph._conv",
+            "Dynamics: neural ODE vs SDE vs CDE for trajectory modeling",
+            "OT: Wasserstein vs Sinkhorn for cell fate matching",
+            "Data: C. elegans lineage, organoid scRNA-seq, synthetic regulatory circuits",
+        ],
+    },
+    "ephys-tokenizer-jax": {
+        "goal": "Optimize tokenization strategies for MEG/EEG signals — find encoder/quantizer configurations that maximize downstream decoding accuracy while minimizing codebook size.",
+        "metric": "token_efficiency = reconstruction_r2 / log2(codebook_size) + downstream_accuracy",
+        "parameters": [
+            "Quantizer: VQ, FSQ, Gumbel-Softmax temperature schedules",
+            "Encoder: RNN hidden_size (32-256), num_layers (1-4)",
+            "Codebook: n_tokens (64-2048), commitment_cost (0.1-10.0)",
+            "Signal: EEG vs MEG, sampling rate, channel count, epoch length",
+        ],
+    },
+    "neurojax": {
+        "goal": "Benchmark differentiable source imaging against classical methods — find regimes where end-to-end gradient flow through head model + inverse solver improves source localization accuracy.",
+        "metric": "source_advantage = (DLE_classical - DLE_neurojax) / DLE_classical on simulated and real (WAND) data",
+        "parameters": [
+            "Inverse solver: MNE, LAURA, VARETA, PI-GNN, sLORETA, beamformer",
+            "Forward model: BEM vs FEM, mesh resolution, tissue conductivity",
+            "Regularization: Tikhonov lambda, learned vs fixed, depth weighting",
+            "Data: simulated dipoles, WAND MEG, Wakeman-Henson",
+        ],
+    },
 }
 
 
@@ -271,22 +301,30 @@ def scaffold_autoresearch(project_root: Path) -> None:
 # ---------- Scheduler ----------
 
 
-DEFAULT_PROJECTS_DIR = Path.home() / "dev"
+DEFAULT_PROJECTS_DIRS = [Path.home() / "dev", Path.home() / "Workspace"]
 
-SCHEDULE_FILE = DEFAULT_PROJECTS_DIR / "research-infra" / "schedule.json"
+SCHEDULE_FILE = Path.home() / "dev" / "research-infra" / "schedule.json"
 
 
 def discover_autoresearch_projects(
-    projects_dir: Path = DEFAULT_PROJECTS_DIR,
+    projects_dir: Path | None = None,
 ) -> list[Path]:
-    """Find all projects with autoresearch/program.md."""
-    results = []
-    if not projects_dir.is_dir():
-        return results
-    for d in sorted(projects_dir.iterdir()):
-        if d.is_dir() and (d / "autoresearch" / "program.md").exists():
-            results.append(d)
-    return results
+    """Find all projects with autoresearch/program.md.
+
+    Scans ``projects_dir`` if given, otherwise scans all default directories.
+    """
+    dirs_to_scan = [projects_dir] if projects_dir else DEFAULT_PROJECTS_DIRS
+    seen_names: set[str] = set()
+    results: list[Path] = []
+    for scan_dir in dirs_to_scan:
+        if not scan_dir.is_dir():
+            continue
+        for d in sorted(scan_dir.iterdir()):
+            if d.is_dir() and (d / "autoresearch" / "program.md").exists():
+                if d.name not in seen_names:
+                    seen_names.add(d.name)
+                    results.append(d)
+    return sorted(results, key=lambda p: p.name)
 
 
 def load_schedule(schedule_file: Path = SCHEDULE_FILE) -> dict:
@@ -304,7 +342,7 @@ def save_schedule(state: dict, schedule_file: Path = SCHEDULE_FILE) -> None:
         json.dump(state, f, indent=2, default=str)
 
 
-def next_project(projects_dir: Path = DEFAULT_PROJECTS_DIR) -> Path | None:
+def next_project(projects_dir: Path | None = None) -> Path | None:
     """Get the next project in the round-robin schedule."""
     projects = discover_autoresearch_projects(projects_dir)
     if not projects:
@@ -326,7 +364,7 @@ def next_project(projects_dir: Path = DEFAULT_PROJECTS_DIR) -> Path | None:
     return project
 
 
-def show_schedule(projects_dir: Path = DEFAULT_PROJECTS_DIR) -> None:
+def show_schedule(projects_dir: Path | None = None) -> None:
     """Display the current schedule and project roster."""
     projects = discover_autoresearch_projects(projects_dir)
     state = load_schedule()
