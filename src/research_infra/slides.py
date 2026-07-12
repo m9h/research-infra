@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 import shutil
+import os
 import subprocess
 from pathlib import Path
 
@@ -48,18 +49,28 @@ def _assemble_slides_md(
     # Validate theme — fall back to default if not available.
     theme = config.beamer_theme
     if theme not in _KNOWN_BEAMER_THEMES:
-        # Check if the theme .sty file exists.
-        result = subprocess.run(
-            ["kpsewhich", f"beamertheme{theme}.sty"],
-            capture_output=True, text=True,
-        )
-        if result.returncode != 0:
+        # Check if the theme .sty file exists. kpsewhich ships with TeX Live, not with
+        # tectonic — which resolves themes from its own bundle — so treat its absence as
+        # "cannot tell" and let the PDF engine be the judge, rather than downgrading a
+        # theme that would in fact have built.
+        try:
+            result = subprocess.run(
+                ["kpsewhich", f"beamertheme{theme}.sty"],
+                capture_output=True, text=True,
+            )
+        except FileNotFoundError:
+            result = None
+        if result is not None and result.returncode != 0:
             click.echo(f"Theme '{theme}' not found, falling back to 'default'.")
             theme = "default"
 
+    # A full paper title is often too long for a title slide, which silently overfills.
+    # Prefer short_title when the project defines one.
+    slide_title = config.project.short_title or config.project.title
+
     meta = (
         "---\n"
-        f"title: \"{config.project.title}\"\n"
+        f"title: \"{slide_title}\"\n"
         f"author:\n{author_lines}\n"
     )
     if institute:
@@ -168,7 +179,7 @@ def build_slides(
         str(slides_md_path),
         "--from", "markdown",
         "--to", "beamer",
-        "--pdf-engine=xelatex",
+        f"--pdf-engine={os.environ.get('RINF_PDF_ENGINE', 'xelatex')}",
         "--slide-level=2",
         "-V", "aspectratio=169",
         "-o", str(pdf_path),
