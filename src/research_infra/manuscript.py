@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import os
 import shutil
 import os
 import subprocess
@@ -44,8 +45,18 @@ def _assemble_combined_md(
     """Assemble sorted files into a single markdown document."""
     parts: list[str] = []
 
-    # YAML metadata block for pandoc.
-    author_lines = "\n".join(f"  - {a.name}" for a in config.authors)
+    # YAML metadata block for pandoc. An author's affiliation, when given, is appended
+    # parenthetically. This survives every output format; emitting a raw LaTeX `\\` here does
+    # not, because pandoc reads metadata as markdown and renders the escape as a literal
+    # backslash. Authors without an affiliation render exactly as before.
+    def _author_entry(a) -> str:
+        name = a.name.replace('"', r"\"")
+        if not a.affiliation:
+            return f'  - "{name}"'
+        affil = a.affiliation.replace('"', r"\"")
+        return f'  - "{name} ({affil})"'
+
+    author_lines = "\n".join(_author_entry(a) for a in config.authors)
     meta = (
         "---\n"
         f"title: \"{config.project.title}\"\n"
