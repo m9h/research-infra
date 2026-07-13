@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 import shutil
+import os
 import subprocess
 from pathlib import Path
 
@@ -150,7 +151,7 @@ def build_manuscript(
         str(combined_path),
         "--from", "markdown+yaml_metadata_block+citations+footnotes+pipe_tables+grid_tables",
         "--to", "pdf",
-        "--pdf-engine=xelatex",
+        f"--pdf-engine={os.environ.get('RINF_PDF_ENGINE', 'xelatex')}",
         "--number-sections",
         "-V", "geometry:margin=1in",
         "-V", "colorlinks=true",
