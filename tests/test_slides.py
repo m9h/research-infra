@@ -83,3 +83,27 @@ class TestBuildSlides:
         assert result is None
         captured = capsys.readouterr()
         assert "No research .md files with slide_summary" in captured.out
+
+
+def test_bundled_beamer_template_is_actually_passed_to_pandoc(tmp_path, monkeypatch):
+    """Regression: the bundled template was computed and never used, so every deck
+    silently fell back to pandoc's stock template and \\toprule / \\checkmark failed."""
+    import subprocess
+    from research_infra import slides as S
+
+    captured = {}
+
+    def fake_run(cmd, *a, **kw):
+        captured["cmd"] = cmd
+        class R:
+            returncode = 0
+            stderr = ""
+            stdout = ""
+        return R()
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(S.shutil, "which", lambda _: "/usr/bin/pandoc")
+
+    bundled = Path(S.__file__).parent / "templates" / "beamer.latex"
+    assert bundled.exists(), "bundled template missing from the package"
+    assert "booktabs" in bundled.read_text(), "bundled template should load booktabs"

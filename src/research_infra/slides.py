@@ -185,11 +185,17 @@ def build_slides(
         "-o", str(pdf_path),
     ]
 
-    # Use custom template if user specified one in config.
+    # Default to the BUNDLED template. It loads booktabs, amssymb, fontspec and
+    # graphicx; without it pandoc falls back to its stock beamer template and any deck
+    # using \toprule, \checkmark or \mathbb fails with "Undefined control sequence".
+    # (This template was previously computed and never passed to pandoc.)
+    template = beamer_template
     if config.beamer_template:
         custom = project_root / "manuscript" / config.beamer_template
         if custom.exists():
-            cmd.extend(["--template", str(custom)])
+            template = custom
+    if template.exists():
+        cmd.extend(["--template", str(template)])
 
     click.echo(f"Building slides: {pdf_path}")
     result = subprocess.run(cmd, capture_output=True, text=True)
