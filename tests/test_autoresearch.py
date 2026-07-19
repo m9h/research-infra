@@ -123,3 +123,18 @@ class TestScheduler:
         captured = capsys.readouterr()
         assert "proj_x" in captured.out
         assert "proj_y" in captured.out
+
+
+def test_schedule_file_is_resolved_at_call_time(tmp_path, monkeypatch):
+    """Regression: load_schedule/save_schedule took `schedule_file=SCHEDULE_FILE` as a
+    DEFAULT ARGUMENT, which Python binds once at import. Monkeypatching
+    autoresearch.SCHEDULE_FILE therefore did nothing, and every test run wrote into the
+    user's real ~/dev/research-infra/schedule.json (found with 44 pytest tmpdir entries)."""
+    from research_infra import autoresearch
+
+    target = tmp_path / "sched.json"
+    monkeypatch.setattr(autoresearch, "SCHEDULE_FILE", target)
+    autoresearch.save_schedule({"last_index": 7, "history": []})
+
+    assert target.exists(), "monkeypatched SCHEDULE_FILE must be honoured"
+    assert autoresearch.load_schedule()["last_index"] == 7

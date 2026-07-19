@@ -327,16 +327,24 @@ def discover_autoresearch_projects(
     return sorted(results, key=lambda p: p.name)
 
 
-def load_schedule(schedule_file: Path = SCHEDULE_FILE) -> dict:
+def load_schedule(schedule_file: Path | None = None) -> dict:
     """Load the round-robin schedule state."""
+    # Resolve at CALL time. As a default argument this bound once at import,
+    # so monkeypatching autoresearch.SCHEDULE_FILE had no effect -- tests wrote
+    # straight into the user's real schedule.json.
+    schedule_file = schedule_file if schedule_file is not None else SCHEDULE_FILE
     if schedule_file.exists():
         with open(schedule_file) as f:
             return json.load(f)
     return {"last_index": -1, "history": []}
 
 
-def save_schedule(state: dict, schedule_file: Path = SCHEDULE_FILE) -> None:
+def save_schedule(state: dict, schedule_file: Path | None = None) -> None:
     """Save the round-robin schedule state."""
+    # Resolve at CALL time. As a default argument this bound once at import,
+    # so monkeypatching autoresearch.SCHEDULE_FILE had no effect -- tests wrote
+    # straight into the user's real schedule.json.
+    schedule_file = schedule_file if schedule_file is not None else SCHEDULE_FILE
     schedule_file.parent.mkdir(parents=True, exist_ok=True)
     with open(schedule_file, "w") as f:
         json.dump(state, f, indent=2, default=str)

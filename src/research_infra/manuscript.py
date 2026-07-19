@@ -160,11 +160,16 @@ def build_manuscript(
         "-o", str(pdf_path),
     ]
 
-    # Use custom template if available AND user requested it via config.
+    # Default to the BUNDLED template; a project-level template still overrides it.
+    # (It was previously computed and never passed to pandoc, so every manuscript
+    # silently used pandoc's stock template and this one was dead code.)
+    template = latex_template
     if config.latex_template:
         custom = project_root / "manuscript" / config.latex_template
         if custom.exists():
-            cmd.extend(["--template", str(custom)])
+            template = custom
+    if template.exists():
+        cmd.extend(["--template", str(template)])
 
     if bib_path.exists():
         cmd.extend(["--citeproc", "--bibliography", str(bib_path)])

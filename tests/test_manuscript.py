@@ -80,3 +80,25 @@ class TestBuildManuscript:
         assert result is None
         captured = capsys.readouterr()
         assert "No research .md files found" in captured.out
+
+
+def test_bundled_latex_template_builds_without_optional_tex_packages():
+    """Regression: the bundled manuscript template hardcoded 31 highlighting macros and
+    \\usepackage{framed}, so it hard-depended on framed.sty and died with
+    'File `framed.sty` not found' on any system without texlive-framed. It now defers to
+    pandoc's own $highlighting-macros$, which emits only what a document needs."""
+    from pathlib import Path
+    from research_infra import manuscript as M
+
+    tpl = Path(M.__file__).parent / "templates" / "manuscript.latex"
+    assert tpl.exists()
+    text = tpl.read_text()
+    # Strip LaTeX comments -- the template *documents* what was removed, so a raw
+    # substring check matches its own commentary rather than effective markup.
+    effective = "\n".join(
+        l for l in text.splitlines() if not l.lstrip().startswith("%")
+    )
+    assert "$highlighting-macros$" in effective, "should defer to pandoc's macros"
+    assert "\\usepackage{framed}" not in effective, "must not hard-depend on framed.sty"
+    assert "\\newcommand{\\AlertTok}" not in effective, "macros must not be hardcoded"
+    assert "$body$" in effective, "still needs to be a valid pandoc template"
