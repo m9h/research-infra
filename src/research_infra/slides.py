@@ -5,7 +5,6 @@ from __future__ import annotations
 import re
 import os
 import shutil
-import os
 import subprocess
 from pathlib import Path
 
@@ -82,6 +81,13 @@ def _assemble_slides_md(
     )
     if config.beamer_colortheme:
         meta += f"colortheme: {config.beamer_colortheme}\n"
+    # Slides routinely put raw \toprule/\midrule/\bottomrule tabulars in slide_summary.
+    # Pandoc only auto-loads booktabs when it sees a *markdown* table, so raw-LaTeX rules
+    # otherwise hit "Undefined control sequence \toprule" and xelatex exits nonzero.
+    meta += (
+        "header-includes:\n"
+        "  - \\usepackage{booktabs}\n"
+    )
     meta += "---\n"
     parts.append(meta)
 
